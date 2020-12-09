@@ -7,6 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from simplecrypt import encrypt, decrypt # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
 import hashlib
+import shell
 
 
 # Tutorial :    https://stackoverflow.com/questions/41731096/sqlalchemy-query-one-to-many-relationship-with-sqlite
@@ -39,7 +40,7 @@ class Association(_base):
 class FilesType(_base):
     __tablename__ = 'filesType'
     id = Column(Integer, primary_key=True, autoincrement=True)
-    type = Column(String(128), unique=False, nullable=False)
+    type = Column(String(128), unique=True, nullable=False)
     filesAssociated = relationship('Association')
 
 
@@ -134,6 +135,7 @@ f = open(CURRENT_DIRECTORY + "01-processs-wrote.pdf", 'wb')
 f.write(decrypt("bivio", q.data))
 f.close()
 """
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     _choice = getDBFile()
@@ -144,14 +146,17 @@ if __name__ == '__main__':
         _password = input("Please enter the password to unlock the database file : ").strip()
         _hashed_password = hashlib.sha224(bytes(_password, encoding='utf-8')).hexdigest()
 
-        if _hashed_password != _settings.password:
-           raise Exception("wrong password")
+        """if _hashed_password != _settings.password:
+           raise Exception("wrong password")"""
     else:
         _base.metadata.create_all(_engine)
         __user_info = askUserInfos()
         _settings = Settings(firstname=__user_info[0], lastname=__user_info[1], password=__user_info[2])
         _session.add(_settings)
         _session.commit()
+
+    __shell = shell.shell(_session, _password)
+    __shell.loop()
 
     print(_settings.firstname)
     _session.close()
