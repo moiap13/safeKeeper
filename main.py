@@ -23,6 +23,7 @@ _db_uri = "sqlite:///" + CURRENT_DIRECTORY + "/safekeeper.db"
 _base = declarative_base()
 _engine = None
 _session = None
+_password = None
 
 class Settings(_base):
     __tablename__ = "settings"
@@ -84,8 +85,8 @@ def askUserInfos():
     print("The database file is created, now I will ask you some information :")
     firstname = input("Pleasse enter your firstname : ").strip()
     lastname = input("Pleasse enter your lastname : ").strip()
-    password = input("Pleasse enter your password : ").strip()
-    return (firstname, lastname, hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest())
+    _password = input("Pleasse enter your password : ").strip()
+    return (firstname, lastname, hashlib.sha224(bytes(_password, encoding='utf-8')).hexdigest())
 """
 f = open(CURRENT_DIRECTORY + "01-processs.pdf", 'rb')
 file_content = f.read()
@@ -155,9 +156,8 @@ if __name__ == '__main__':
         _session.add(_settings)
         _session.commit()
 
+    print("Welcome, " + _settings.firstname)
     __shell = shell.shell(_session, _password)
     __shell.loop()
-
-    print(_settings.firstname)
     _session.close()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
