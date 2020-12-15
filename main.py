@@ -147,8 +147,8 @@ if __name__ == '__main__':
         _password = input("Please enter the password to unlock the database file : ").strip()
         _hashed_password = hashlib.sha224(bytes(_password, encoding='utf-8')).hexdigest()
 
-        """if _hashed_password != _settings.password:
-           raise Exception("wrong password")"""
+        if _hashed_password != _settings.password:
+           raise Exception("wrong password")
     else:
         _base.metadata.create_all(_engine)
         __user_info = askUserInfos()
