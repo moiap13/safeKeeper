@@ -21,15 +21,22 @@ class shell:
         print("Usage : ")
         print("\t list files : List the files contenent the database")
         print("\t list types : List the typesfiles content in the database")
+        print("\t exit : to quit the shell")
 
     def loop(self):
         _cmd = ""
         while (_cmd != "exit"):
             _cmd = input("$ ").strip()
 
-            if _cmd == "list files":
-                """List files here"""
-                self.__shell_functions.list_files()
+            if "list files" in _cmd:
+                lst_command = shlex.split(_cmd)
+                try:
+                    typeFile = lst_command[lst_command.index("-t") + 1]
+                except ValueError:
+                    typeFile = None
+
+                self.__shell_functions.list_files(typeFile=typeFile)
+
             elif "add file" in _cmd :
                 lst_command = shlex.split(_cmd)
                 try:
@@ -52,6 +59,25 @@ class shell:
                     print("File added successfully")
                 else:
                     print("The given path doesn't exist")
+
+            elif "decrypt" in _cmd :
+                lst_command = shlex.split(_cmd)
+                try:
+                    id_file = lst_command[lst_command.index("-i") + 1]
+                except ValueError:
+                    print("-i needed")
+                    continue
+
+                try:
+                    pwd = lst_command[lst_command.index("-p") + 1]
+                except ValueError:
+                    pwd = self.__password
+
+                if self.__shell_functions.decrypt_file(id_file, pwd) == 0:
+                    print("File decrypted successfully !")
+                else:
+                    print("The password didn't match")
+
             elif _cmd == "exit":
                 pass
             else:

@@ -19,6 +19,7 @@ import shell
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
 
 CURRENT_DIRECTORY = (os.path.realpath(__file__)).replace(os.path.basename(__file__), "")
+DECRYPTED_FOLDER = "Decrypted_files"
 _db_uri = "sqlite:///" + CURRENT_DIRECTORY + "/safekeeper.db"
 _base = declarative_base()
 _engine = None
@@ -78,7 +79,6 @@ def initDbInstance():
 
 def load_settings(session):
     s = session.query(Settings).all()
-
     return s[0]
 
 def askUserInfos():

@@ -1,6 +1,7 @@
 import main
 import os
 import hashlib
+from sqlalchemy import text
 from simplecrypt import encrypt, \
     decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
 
@@ -13,15 +14,42 @@ class shell_functions:
         self.__session = session
         self.__password = password
 
-    def list_files(self):
-        q = self.__session.query(main.Files).all()
-        for p in q:
-            print(p.title)
-        return q
+    def decrypt_file(self, id_file, password):
+        file = self.__session.query(main.Files).filter(main.Files.id == id_file).first()
+        hashed_password = hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest()
+
+        if hashed_password != file.password:
+            return 1
+
+        decrypted_folder = main.CURRENT_DIRECTORY + main.DECRYPTED_FOLDER + "/"
+        if not os.path.isdir(decrypted_folder):
+            os.mkdir(decrypted_folder)
+
+        f = open(decrypted_folder + file.title, 'wb')
+        f.write(decrypt(password, file.data))
+        f.close()
+
+        return 0
+
+    def list_all_files(self):
+        return self.__session.query(main.Files).all()
+
+    def list_files_with_type(self, typeFile):
+        sql_query = text("""select f.id, f.title from files as f
+                            join association as a on a.file = f.id
+                            join filesType as ft on a.filesType=ft.id
+                            where ft.type='{typeFile}'""".format(typeFile=typeFile))
+        result = self.__session.execute(sql_query)
+        return result.fetchall()
+
+    def list_files(self, typeFile=None):
+        files = self.list_files_with_type(typeFile) if typeFile is not None else self.list_all_files()# if typeFile is setted get the files with the given type
+
+        for file in files:
+            print(str(file.id) + " : " + file.title)
+        return files
 
     def add_file(self, path, password, typeFile):
-        file_contenent = None
-
         if os.path.exists(path):
             f = open(path, 'rb')
             file_contenent = f.read()
