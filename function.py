@@ -2,6 +2,7 @@ import main
 import os
 import hashlib
 from sqlalchemy import text
+import re
 from simplecrypt import encrypt, \
     decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
 
@@ -25,7 +26,7 @@ class shell_functions:
         if not os.path.isdir(decrypted_folder):
             os.mkdir(decrypted_folder)
 
-        f = open(decrypted_folder + file.title, 'wb')
+        f = open(decrypted_folder + str(decrypt(password, file.title)), 'wb')
         f.write(decrypt(password, file.data))
         f.close()
 
@@ -66,7 +67,7 @@ class shell_functions:
 
         file_content_cryp = encrypt(password, file_contenent)
 
-        adding_file = main.Files(data=file_content_cryp, title=filename,
+        adding_file = main.Files(data=file_content_cryp, title=str(encrypt(password, filename)),
                                  password=hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest())
         self.__session.add(adding_file)
         self.__session.commit()
