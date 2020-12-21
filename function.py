@@ -26,7 +26,7 @@ class shell_functions:
         if not os.path.isdir(decrypted_folder):
             os.mkdir(decrypted_folder)
 
-        f = open(decrypted_folder + str(decrypt(password, file.title)), 'wb')
+        f = open(decrypted_folder + decrypt(self.__password, file.title).decode("utf-8"), 'wb')
         f.write(decrypt(password, file.data))
         f.close()
 
@@ -43,11 +43,23 @@ class shell_functions:
         result = self.__session.execute(sql_query)
         return result.fetchall()
 
-    def list_files(self, typeFile=None):
-        files = self.list_files_with_type(typeFile) if typeFile is not None else self.list_all_files()# if typeFile is setted get the files with the given type
+    def list_files(self, typeFile=None, search=None, reg=None):
+        def print_files():
+            print(str(file.id) + " : " + decrypt(self.__password, file.title).decode("utf-8"))
+
+        files = self.list_files_with_type(typeFile) if typeFile is not None else self.list_all_files() # if typeFile is setted get the files with the given type
 
         for file in files:
-            print(str(file.id) + " : " + file.title)
+            if search is not None:
+                if search in file.title:
+                    print_files()
+            elif reg is not None:
+                #regex = re.compile(str(reg))
+                if re.match("%s" % reg, file.title):
+                    print_files()
+            else:
+                print_files()
+
         return files
 
     def add_file(self, path, password, typeFile):
@@ -67,7 +79,7 @@ class shell_functions:
 
         file_content_cryp = encrypt(password, file_contenent)
 
-        adding_file = main.Files(data=file_content_cryp, title=str(encrypt(password, filename)),
+        adding_file = main.Files(data=file_content_cryp, title=encrypt(self.__password, filename),
                                  password=hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest())
         self.__session.add(adding_file)
         self.__session.commit()

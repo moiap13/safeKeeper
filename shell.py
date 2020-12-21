@@ -7,7 +7,6 @@ class shell:
     __shell_functions = None
 
     ADD_FILE = regexPattern = re.compile("add file *")
-    ADD_FILE2 = regexPattern = re.compile("add file")
 
     def __init__(self, session, password):
         """init the shell class"""
@@ -25,7 +24,7 @@ class shell:
 
     def loop(self):
         _cmd = ""
-        while (_cmd != "exit"):
+        while _cmd != "exit":
             _cmd = input("$ ").strip()
 
             if "list files" in _cmd:
@@ -34,11 +33,23 @@ class shell:
                     typeFile = lst_command[lst_command.index("-t") + 1]
                 except ValueError:
                     typeFile = None
+                try:
+                    searchTerm = lst_command[lst_command.index("-s") + 1]
+                except ValueError:
+                    searchTerm = None
+                try:
+                    reg = lst_command[lst_command.index("-r") + 1]
+                except ValueError:
+                    reg = None
 
-                self.__shell_functions.list_files(typeFile=typeFile)
+                self.__shell_functions.list_files(typeFile=typeFile, search=searchTerm, reg=reg)
 
-            elif "add file" in _cmd :
+            elif "add file" in _cmd:
                 lst_command = shlex.split(_cmd)
+                if "--help" in lst_command:
+                    print("help")
+                    continue
+
                 try:
                     file = lst_command[lst_command.index("-f") + 1]
                 except ValueError:
@@ -60,7 +71,7 @@ class shell:
                 else:
                     print("The given path doesn't exist")
 
-            elif "decrypt" in _cmd :
+            elif "decrypt" in _cmd:
                 lst_command = shlex.split(_cmd)
                 try:
                     id_file = lst_command[lst_command.index("-i") + 1]

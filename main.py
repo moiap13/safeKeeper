@@ -5,13 +5,19 @@ from sqlalchemy import Column, String, BLOB, Integer, create_engine, ForeignKey,
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-from simplecrypt import encrypt, decrypt # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
+from simplecrypt import encrypt, \
+    decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
 import hashlib
 import shell
+import animations
 
+import itertools
+import threading
+import time
+import sys
 
 # Tutorial :    https://stackoverflow.com/questions/41731096/sqlalchemy-query-one-to-many-relationship-with-sqlite
-                #https://www.kite.com/python/answers/how-to-execute-raw-sql-queries-in-sqlalchemy-in-python
+# https://www.kite.com/python/answers/how-to-execute-raw-sql-queries-in-sqlalchemy-in-python
 
 # This is a sample Python script.
 
@@ -20,11 +26,14 @@ import shell
 
 CURRENT_DIRECTORY = (os.path.realpath(__file__)).replace(os.path.basename(__file__), "")
 DECRYPTED_FOLDER = "Decrypted_files"
-_db_uri = "sqlite:///" + CURRENT_DIRECTORY + "/safekeeper.db"
+DATABASE_NAME = "safekeeper.db"
+
+_db_uri = "sqlite:///" + CURRENT_DIRECTORY + "/" + DATABASE_NAME
 _base = declarative_base()
 _engine = None
 _session = None
 _password = None
+
 
 class Settings(_base):
     __tablename__ = "settings"
@@ -32,12 +41,14 @@ class Settings(_base):
     lastname = Column(String(128))
     password = Column(String(64), primary_key=True)
 
+
 class Association(_base):
     __tablename__ = 'association'
     filesType = Column(Integer, ForeignKey('filesType.id'), primary_key=True)
     file = Column(Integer, ForeignKey('files.id'), primary_key=True)
     extra_data = Column(String(50))
     child = relationship("Files")
+
 
 class FilesType(_base):
     __tablename__ = 'filesType'
@@ -57,6 +68,7 @@ class Files(_base):
         __repr__ = ("File %d : '%s'\n" % (self.id, self.title))
         return __repr__
 
+
 def getDBFile():
     _choice = input("Do you want to open an existing file (1) or create a new one (2) ? ").strip().lower()
     if _choice == "1":
@@ -67,9 +79,13 @@ def getDBFile():
             _db_uri = "sqlite:///" + _path
         else:
             raise Exception("the given path doesn't exist")
-    elif _choice != "2":
+    elif _choice == "2":
+        if os.path.exists(CURRENT_DIRECTORY + "/" + DATABASE_NAME):
+            os.remove(CURRENT_DIRECTORY + "/" + DATABASE_NAME)
+    else:
         raise Exception("You must only type 1 or 2")
     return _choice
+
 
 def initDbInstance():
     global _engine
@@ -77,16 +93,21 @@ def initDbInstance():
     _session = sessionmaker(bind=_engine)
     return _session()
 
+
 def load_settings(session):
     s = session.query(Settings).all()
     return s[0]
+
 
 def askUserInfos():
     print("The database file is created, now I will ask you some information :")
     firstname = input("Pleasse enter your firstname : ").strip()
     lastname = input("Pleasse enter your lastname : ").strip()
+    global _password
     _password = input("Pleasse enter your password : ").strip()
     return (firstname, lastname, hashlib.sha224(bytes(_password, encoding='utf-8')).hexdigest())
+
+
 """
 f = open(CURRENT_DIRECTORY + "01-processs.pdf", 'rb')
 file_content = f.read()
@@ -148,15 +169,24 @@ if __name__ == '__main__':
         _hashed_password = hashlib.sha224(bytes(_password, encoding='utf-8')).hexdigest()
 
         if _hashed_password != _settings.password:
-           raise Exception("wrong password")
+            raise Exception("wrong password")
+
+        threading.Thread(target=animations.animate).start() # launch loading animation
     else:
         _base.metadata.create_all(_engine)
         __user_info = askUserInfos()
-        _settings = Settings(firstname=__user_info[0], lastname=__user_info[1], password=__user_info[2])
+
+        threading.Thread(target=animations.animate).start() # loading animation start
+
+        _settings = Settings(firstname=encrypt(_password, __user_info[0]), lastname=encrypt(_password, __user_info[1]),
+                             password=__user_info[2])
         _session.add(_settings)
         _session.commit()
 
-    print("Welcome, " + _settings.firstname)
+    #sys.stdout.flush()
+    sys.stdout.write("\rWelcome, " + decrypt(_password, _settings.firstname).decode("utf-8") + "\n")
+    animations.done = True
+
     __shell = shell.shell(_session, _password)
     __shell.loop()
     _session.close()
