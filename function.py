@@ -1,3 +1,5 @@
+import threading
+
 import main
 import os
 import hashlib
@@ -44,25 +46,31 @@ class shell_functions:
         return result.fetchall()
 
     def list_files(self, typeFile=None, search=None, reg=None):
-        def print_files():
-            print(str(file.id) + " : " + decrypt(self.__password, file.title).decode("utf-8"))
+        def print_files(title):
+            print(str(file.id) + " : " + title)
 
-        files = self.list_files_with_type(typeFile) if typeFile is not None else self.list_all_files() # if typeFile is setted get the files with the given type
-
+        files = self.list_files_with_type(typeFile) if typeFile is not None else self.list_all_files() # if typeFile is setted get the files with the given type else all the files
+        files = files
         for file in files:
+            file_title = decrypt(self.__password, file.title).decode("utf-8")
             if search is not None:
-                if search in file.title:
-                    print_files()
+                if search in file_title:
+                    threading.Thread(target=print_files(file_title)).start()
             elif reg is not None:
-                #regex = re.compile(str(reg))
-                if re.match("%s" % reg, file.title):
-                    print_files()
+                if re.match("%s" % reg, file_title):
+                    threading.Thread(target=print_files(file_title)).start()
             else:
-                print_files()
+                threading.Thread(target=print_files(file_title)).start()
 
         return files
 
     def add_file(self, path, password, typeFile):
+        if path[0] == "~":
+            if os.name == "posix":
+                path = os.path.join(os.path.expanduser('~')) + path[1:]
+            elif os.name == "nt":
+                path = os.path.join(os.environ['USERPROFILE'] + path[2:])
+
         if os.path.exists(path):
             f = open(path, 'rb')
             file_contenent = f.read()
@@ -100,3 +108,17 @@ class shell_functions:
         do_relation = main.Association(filesType=file_type_id, file=adding_file.id, extra_data="")
         self.__session.add(do_relation)
         self.__session.commit()
+
+    def delete_file(self, id):
+        obj = self.__session.query(main.Files).filter(main.Files.id == id).first()
+        if obj is not None:
+            self.__session.delete(obj)
+        else:
+            return -1
+        obj = self.__session.query(main.Association).filter(main.Association.file == id).first()
+        if obj is not None:
+            self.__session.delete(obj)
+        else:
+            return -2
+        self.__session.commit()
+        return 0

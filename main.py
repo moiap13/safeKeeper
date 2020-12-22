@@ -183,9 +183,10 @@ if __name__ == '__main__':
         _session.add(_settings)
         _session.commit()
 
-    #sys.stdout.flush()
-    sys.stdout.write("\rWelcome, " + decrypt(_password, _settings.firstname).decode("utf-8") + "\n")
+    __firstname = decrypt(_password, _settings.firstname).decode("utf-8")
     animations.done = True
+    sys.stdout.write("\rWelcome, " + __firstname + "\n")
+
 
     __shell = shell.shell(_session, _password)
     __shell.loop()

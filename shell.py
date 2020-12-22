@@ -88,6 +88,25 @@ class shell:
                     print("File decrypted successfully !")
                 else:
                     print("The password didn't match")
+            elif "delete" in _cmd:
+                lst_command = shlex.split(_cmd)
+                try:
+                    id_file = lst_command[lst_command.index("-i") + 1]
+                except ValueError:
+                    print("-i needed")
+                    continue
+
+                if input("Are you sure you want to delete this file ? [y/n] ").lower().strip() != "y":
+                    print("file deletion aborted !")
+                    continue
+
+                return_value = self.__shell_functions.delete_file(id_file)
+                if return_value == 0:
+                    print("File deleted successfully !")
+                elif return_value == -1:
+                    print("Index/File not correct")
+                elif return_value == -2:
+                    print("Association failed")
 
             elif _cmd == "exit":
                 pass
