@@ -5,8 +5,9 @@ import os
 import hashlib
 from sqlalchemy import text
 import re
-from simplecrypt import encrypt, \
-    decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
+from simplecrypt import encrypt, decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
+import zipfile
+from io import BytesIO
 
 
 class shell_functions:
@@ -19,6 +20,8 @@ class shell_functions:
 
     def decrypt_file(self, id_file, password):
         file = self.__session.query(main.Files).filter(main.Files.id == id_file).first()
+        typeId = self.__session.query(main.Association).filter(main.Association.file == id_file).first()
+        type = self.__session.query(main.FilesType).filter(main.FilesType.id == typeId.filesType).first()
         hashed_password = hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest()
 
         if hashed_password != file.password:
@@ -28,9 +31,14 @@ class shell_functions:
         if not os.path.isdir(decrypted_folder):
             os.mkdir(decrypted_folder)
 
-        f = open(decrypted_folder + decrypt(self.__password, file.title).decode("utf-8"), 'wb')
-        f.write(decrypt(password, file.data))
-        f.close()
+        if type.type == "directory":
+            zipdata = BytesIO(decrypt(password, file.data))
+            my_zipfile = zipfile.ZipFile(zipdata, mode='r', compression=zipfile.ZIP_DEFLATED)
+            my_zipfile.extractall(decrypted_folder)
+        else:
+            f = open(decrypted_folder + decrypt(self.__password, file.title).decode("utf-8"), 'wb')
+            f.write()
+            f.close()
 
         return 0
 
@@ -47,6 +55,8 @@ class shell_functions:
 
     def list_files(self, typeFile=None, search=None, reg=None):
         def print_files(title):
+            if title.split(".")[-1] == "directory":
+                title = title[:-10] + "/"
             print(str(file.id) + " : " + title)
 
         files = self.list_files_with_type(typeFile) if typeFile is not None else self.list_all_files() # if typeFile is setted get the files with the given type else all the files
@@ -72,20 +82,36 @@ class shell_functions:
                 path = os.path.join(os.environ['USERPROFILE'] + path[2:])
 
         if os.path.exists(path):
-            f = open(path, 'rb')
-            file_contenent = f.read()
-            f.close()
+            if os.path.isdir(path):
+                zipdata = BytesIO()
+                def zipdir(path, ziph):
+                    # ziph is zipfile handle
+                    for root, dirs, files in os.walk(path):
+                        for file in files:
+                            ziph.write(os.path.join(root.split("/")[-1], file))
+
+                zipf = zipfile.ZipFile(zipdata, 'w', zipfile.ZIP_DEFLATED)
+                zipdir(path, zipf)
+                zipf.close()
+
+                file_content_cryp = encrypt(password, zipdata.getbuffer().tobytes())
+
+                filename = path.split("/")[-1] + ".directory"
+                file_extension = "directory"
+            else:
+                f = open(path, 'rb')
+                file_contenent = f.read()
+                f.close()
+
+                assert file_contenent is not None
+                file_content_cryp = encrypt(password, file_contenent)
+
+                filename, file_extension = os.path.splitext(path)
+
+                filename = filename.split("/")[-1] + file_extension
+                file_extension = file_extension.split(".")[-1]
         else:
             return -1
-
-        assert file_contenent is not None
-
-        filename, file_extension = os.path.splitext(path)
-
-        filename = filename.split("/")[-1] + file_extension
-        file_extension = file_extension.split(".")[-1]
-
-        file_content_cryp = encrypt(password, file_contenent)
 
         adding_file = main.Files(data=file_content_cryp, title=encrypt(self.__password, filename),
                                  password=hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest())
