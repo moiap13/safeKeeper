@@ -24,8 +24,11 @@ class shell_functions:
         type = self.__session.query(main.FilesType).filter(main.FilesType.id == typeId.filesType).first()
         hashed_password = hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest()
 
+        if file is None:
+            return -1
+
         if hashed_password != file.password:
-            return 1
+            return -2
 
         decrypted_folder = main.CURRENT_DIRECTORY + main.DECRYPTED_FOLDER + "/"
         if not os.path.isdir(decrypted_folder):
