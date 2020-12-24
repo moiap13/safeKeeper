@@ -25,7 +25,7 @@ class shell:
     def loop(self):
         _cmd = ""
         while _cmd != "exit":
-            _cmd = input("$ ").strip()
+            _cmd = input("safekeeper> ").strip()
 
             if "list files" in _cmd:
                 lst_command = shlex.split(_cmd)
@@ -84,10 +84,14 @@ class shell:
                 except ValueError:
                     pwd = self.__password
 
-                if self.__shell_functions.decrypt_file(id_file, pwd) == 0:
+                return_value = self.__shell_functions.decrypt_file(id_file, pwd)
+                if return_value == 0:
                     print("File decrypted successfully !")
-                else:
+                elif return_value == -1:
+                    print("Index/File not correct")
+                elif return_value == -2:
                     print("The password didn't match")
+
             elif "delete" in _cmd:
                 lst_command = shlex.split(_cmd)
                 try:
