@@ -40,7 +40,7 @@ class shell_functions:
             my_zipfile.extractall(decrypted_folder)
         else:
             f = open(decrypted_folder + decrypt(self.__password, file.title).decode("utf-8"), 'wb')
-            f.write()
+            f.write(decrypt(password, file.data))
             f.close()
 
         return 0
