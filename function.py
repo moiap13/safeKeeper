@@ -89,9 +89,16 @@ class shell_functions:
                 zipdata = BytesIO()
                 def zipdir(path, ziph):
                     # ziph is zipfile handle
-                    for root, dirs, files in os.walk(path):
-                        for file in files:
-                            ziph.write(os.path.join(root.split("/")[-1], file))
+                    #for root, dirs, files in os.walk(path):
+                    abs_src = os.path.abspath(path)
+                    for dirname, subdirs, files in os.walk(path):
+                        #for file in files:
+                        for filename in files:
+                            #ziph.write(os.path.join(root, file))
+                            absname = os.path.abspath(os.path.join(dirname, filename))
+                            arcname = absname[len(abs_src) + 1:]
+                            print( 'zipping %s as %s' % (os.path.join(dirname, filename),arcname))
+                            ziph.write(absname, arcname)
 
                 zipf = zipfile.ZipFile(zipdata, 'w', zipfile.ZIP_DEFLATED)
                 zipdir(path, zipf)
