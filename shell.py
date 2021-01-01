@@ -1,10 +1,13 @@
+import curses
 import re
 import shlex
+from inputs import history_input
 
 class shell:
     __session = None
     __password = None
     __shell_functions = None
+    __screen = None
 
     ADD_FILE = regexPattern = re.compile("add file *")
 
@@ -13,6 +16,7 @@ class shell:
         import function
         self.__session = session
         self.__password = password
+        #self.__screen = screen
         self.__shell_functions = function.shell_functions(self.__session, self.__password)
 
 
@@ -25,7 +29,8 @@ class shell:
     def loop(self):
         _cmd = ""
         while _cmd != "exit":
-            _cmd = input("safekeeper> ").strip()
+#            _cmd = input("safekeeper> ").strip()
+            _cmd = history_input()
 
             if "list files" in _cmd:
                 lst_command = shlex.split(_cmd)
