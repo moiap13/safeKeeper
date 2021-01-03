@@ -1,0 +1,24 @@
+@font-face {
+    font-family: 'veganStyle'; /*a name to be used later*/
+    src: url('../fonts/VeganStylePersonalUse-5Y58.ttf'); /*URL to font*/
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    height: 100%;
+}
+
+#navbarHome {
+    background-color: #2b5a83; !important;
+}
+
+#navbarTitle {
+    margin-left: 2%;
+    font-family: veganStyle;
+    font-size: 2.5em;
+    color: azure;
+}
