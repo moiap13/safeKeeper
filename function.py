@@ -88,26 +88,21 @@ class shell_functions:
             if os.path.isdir(path):
                 zipdata = BytesIO()
                 def zipdir(path, ziph):
-                    # ziph is zipfile handle
-                    #for root, dirs, files in os.walk(path):
                     abs_src = os.path.abspath(path)
                     for dirname, subdirs, files in os.walk(path):
-                        #for file in files:
                         for filename in files:
-                            #ziph.write(os.path.join(root, file))
                             absname = os.path.abspath(os.path.join(dirname, filename))
                             arcname = absname[len(abs_src) + 1:]
-                            print( 'zipping %s as %s' % (os.path.join(dirname, filename),arcname))
                             ziph.write(absname, arcname)
 
                 zipf = zipfile.ZipFile(zipdata, 'w', zipfile.ZIP_DEFLATED)
                 zipdir(path, zipf)
                 zipf.close()
 
-                file_content_cryp = encrypt(password, zipdata.getbuffer().tobytes())
-
                 filename = path.split("/")[-1] + ".directory"
                 file_extension = "directory"
+                
+                file_content_cryp = encrypt(password, zipdata.getbuffer().tobytes())
             else:
                 f = open(path, 'rb')
                 file_contenent = f.read()
@@ -144,6 +139,7 @@ class shell_functions:
         do_relation = main.Association(filesType=file_type_id, file=adding_file.id, extra_data="")
         self.__session.add(do_relation)
         self.__session.commit()
+        return 0
 
     def delete_file(self, id):
         obj = self.__session.query(main.Files).filter(main.Files.id == id).first()
