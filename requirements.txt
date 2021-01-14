@@ -1,3 +1,4 @@
 sqlalchemy
 simple-crypt
-
+flask
+flask_socketio
