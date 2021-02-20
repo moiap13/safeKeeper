@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+import hashlib
 import os
 import sys
 from flask import Flask, render_template, request, make_response, jsonify, session
+from simplecrypt import decrypt
 from sqlalchemy import Column, String, BLOB, Integer, create_engine, ForeignKey, text
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -20,6 +22,7 @@ app = Flask(__name__, template_folder="templates")
 app.config['SECRET_KEY'] = 'mysecret'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///session_db'
 app.config['SESSION_TYPE'] = 'sqlalchemy'
+#app.config['SESSION_PERMANENT'] = False
 
 session_db = SQLAlchemy(app)
 
@@ -33,11 +36,12 @@ socketio = SocketIO(app, manage_session=False)
 
 CURRENT_DIRECTORY = (os.path.realpath(__file__)).replace(os.path.basename(__file__), "")
 DATABASE_DIRECTORIES = "uploaded_databases"
+DATABASE_DIRECTORY_PATH = os.path.join(CURRENT_DIRECTORY + DATABASE_DIRECTORIES + "/")
 
 _db_uri = "sqlite:///"
 _base = declarative_base()
 _engine = None
-_session = None
+_sess_db = None
 _password = None
 
 clients = []
@@ -52,15 +56,13 @@ def load_settings(sa_session):
     s = sa_session.query(main.Settings).all()
     return s[0]
 
-
-
 @app.route('/db_name')
 def index2():
     return session["user_dict"]["db_name"]
 
 @app.route('/uuid')
 def index3():
-    return session["client_uuid"]
+    return "Client uuid : " + session["client_uuid"] #+ " / " + "db_loaded : " + session["db_loaded"]
 
 @socketio.on('connection')
 def another_event(uuid):
@@ -78,33 +80,35 @@ def connected():
 def droppedfiles():
     if request.files:
         data = request.files["databasefile"]
-        databases_dir = os.path.join(CURRENT_DIRECTORY + DATABASE_DIRECTORIES + "/")
-        print("database dir : " + str(databases_dir))
-        if not os.path.isdir(databases_dir):
-            os.mkdir(databases_dir)
+        print("database dir : " + str(DATABASE_DIRECTORY_PATH))
+
+        if not os.path.isdir(DATABASE_DIRECTORY_PATH):
+            os.mkdir(DATABASE_DIRECTORY_PATH)
+
+        global _sess_db
 
         user_dict = {"db_name": str(uuid.uuid4())}
         session["user_dict"] = user_dict
-        session["sa_session"] = _session
-        data.save(os.path.join(databases_dir, user_dict["db_name"]))
-        print("data saved")
+        session["sa_session"] = _sess_db
 
-        def ack_db_pwd(password):
-            print(password)
-            # TODO: decrypt db
-        socketio.emit("request_pwd", room=session["client_uuid"], callback=lambda x: print(str(x)))
-        return "1"
+        data.save(os.path.join(DATABASE_DIRECTORY_PATH, user_dict["db_name"]))
+
+        print("data saved as " + user_dict["db_name"])
+
+
+        socketio.emit("request_pwd", room=session["client_uuid"], callback=ack_db_pwd)
 
         global _db_uri
-        _db_uri += databases_dir + "/" + data.filename
+        _db_uri += DATABASE_DIRECTORY_PATH + user_dict["db_name"]
 
         #TODO: socketIo database loaded
-        #global _session
-        #_session = initDbInstance()
+
+        session["sa_session"] = initDbInstance()
 
         #TODO: socketIo validating database
-        _settings = load_settings(_session)
-
+        _settings = load_settings(session["sa_session"])
+        session["settings"] = _settings
+        return "1"
         #TODO: socketIo ask password
 
     print(data)
@@ -120,7 +124,31 @@ def droppedfiles():
 
 @app.route('/')
 def index():
-    return render_template('index.html', client_uuid=(session["client_uuid"] if "client_uuid" in session else None))
+    if "logged" in session:
+        return "db_loaded"
+    else:
+        session["logged"] = True
+        return render_template('index.html', client_uuid=(session["client_uuid"] if "client_uuid" in session else None))
+
+@app.route('/logout', methods=['GET'])
+def my_form_post():
+    session_db.engine.execute("delete from sessions where session_id like 'session\::sid'", sid=session.sid)
+    session.clear()
+    return "logged out"
+
+@app.route('/password', methods=['POST'])
+def ack_db_pwd():
+    password = request.form['ipt_pwd']
+
+    # TODO: decrypt db
+    _hashed_password = hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest()
+
+    if _hashed_password != session["settings"].password:
+        raise Exception("wrong password")
+
+    session["db_loaded"] = True
+
+    return decrypt(password, session["settings"].firstname).decode("utf-8")
 
 if __name__ == "__main__":
     socketio.run(app=app, port=13226)

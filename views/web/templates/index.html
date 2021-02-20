@@ -54,6 +54,14 @@
                 <div class="box__error">Error! <span></span>.</div>
             </form>
         </div>
+        <div class="container">
+            <div id="input_pwd">
+                <form action="/password" method="post">
+                    <input type="input" name="ipt_pwd" id="ipt_pwd" >
+                    <input type="submit" name="btn_pwd" id="btn_pwd" value="Send Password">
+                </form>
+            </div>
+        </div>
 
         <div class="panel-footer">
             <p>&copy; Company | Privacy | Terms</p>
@@ -82,8 +90,16 @@
         });
 
         socket.on('request_pwd', function (fn) {
-            let pwd = prompt('password please : ');
-            fn(pwd);
+            /*$("#btn_pwd").click(function (){
+                let val = $("#ipt_pwd").val();
+                fn(val);
+                $("#input_pwd").fadeOut();
+            })*/
+            $("#input_pwd").fadeIn();
+        });
+
+        $(document).ready(function (){
+            $("#input_pwd").hide();
         });
     </script>
 </html>
