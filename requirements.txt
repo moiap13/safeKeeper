@@ -2,3 +2,5 @@ sqlalchemy
 simple-crypt
 flask
 flask_socketio
+flask_session
+flask_sqlalchemy

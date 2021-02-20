@@ -66,13 +66,24 @@
     <script src="{{url_for('static', filename='js/drag_and_drop.js')}}"></script>
     <script src="{{url_for('static', filename='js/jquery.custom_input_file.js')}}"></script>
     <script src="{{url_for('static', filename='js/ajax.submit_files.js')}}"></script>
+    <script src="{{url_for('static', filename='js/uuid4.js')}}"></script>
     <script>
         "use strict";
         var socket = io.connect('http://127.0.0.1:13226');
-        socket.emit("connection", "client connected");
+        var uuid = '{{ client_uuid }}';
+        if(uuid === "None") {
+            uuid = uuidv4()
+        }
+
+        socket.emit("connection", uuid);
 
         socket.on("infos", function (info) {
             alert(info);
+        });
+
+        socket.on('request_pwd', function (fn) {
+            let pwd = prompt('password please : ');
+            fn(pwd);
         });
     </script>
 </html>
