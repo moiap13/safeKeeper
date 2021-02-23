@@ -153,6 +153,8 @@ def list_files():
     else:
         return redirect("/")
 
+
+
 @socketio.on('get_data')
 def send_data(room):
     join_room(uuid)
@@ -160,6 +162,7 @@ def send_data(room):
     socketio.emit("infos", "only for room " + room, room=room)
     files = clients_db_sessions[room]["cur_session"].cursor().execute("select * from Files").fetchall()
 
+    begin = time.time()
     def print_files(title):
         if title.split(".")[-1] == "directory":
             title = title[:-10] + "/"
@@ -169,12 +172,10 @@ def send_data(room):
         file_title = print_files(decrypt(password, file).decode("utf-8"))
         list[id] = file_title
 
-    begin = time.time()
-
     titles = {}
     threads = []
     for file in files:
-        t = Process(target=decrypt_file, args=(titles, clients_db_sessions[room]["db_password"], file[1], file[0]))
+        t = Thread(target=decrypt_file, args=(titles, clients_db_sessions[room]["db_password"], file[1], file[0]))
         t.start()
         threads.append(t)
 
