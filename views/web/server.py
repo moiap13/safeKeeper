@@ -7,7 +7,6 @@ from threading import Thread
 from multiprocessing import Process
 
 from flask import Flask, render_template, request, make_response, jsonify, session, redirect, url_for
-from simplecrypt import decrypt
 from sqlalchemy import Column, String, BLOB, Integer, create_engine, ForeignKey, text
 from sqlalchemy.orm import sessionmaker, relationship, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
@@ -18,6 +17,10 @@ import uuid
 import sqlite3
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))+"/terminal")
+sys.path.append("./../../my_crypt")
+
+
+from crypt import *
 
 import main
 
@@ -190,5 +193,5 @@ def send_data(room):
     socketio.emit("files_data", titles, room=room)
 
 if __name__ == "__main__":
-    socketio.run(app=app, port=13226)
+    socketio.run(app=app, port=13226, host='0.0.0.0')
 

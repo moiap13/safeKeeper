@@ -5,9 +5,11 @@ import os
 import hashlib
 from sqlalchemy import text
 import re
-from simplecrypt import encrypt, decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
+#from simplecrypt import encrypt, decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
 import zipfile
 from io import BytesIO
+
+from my_crypt.crypt import *
 
 
 class shell_functions:
@@ -19,9 +21,10 @@ class shell_functions:
         self.__password = password
 
     def decrypt_file(self, id_file, password):
-        file = self.__session.query(main.Files).filter(main.Files.id == id_file).first()
-        typeId = self.__session.query(main.Association).filter(main.Association.file == id_file).first()
-        type = self.__session.query(main.FilesType).filter(main.FilesType.id == typeId.filesType).first()
+        cur_session = self.__session
+        file = cur_session.query(main.Files).filter(main.Files.id == id_file).first()
+        typeId = cur_session.query(main.Association).filter(main.Association.file == id_file).first()
+        type = cur_session.query(main.FilesType).filter(main.FilesType.id == typeId.filesType).first()
         hashed_password = hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest()
 
         if file is None:
@@ -34,13 +37,16 @@ class shell_functions:
         if not os.path.isdir(decrypted_folder):
             os.mkdir(decrypted_folder)
 
+        key = generate_key_derivation(b"", password)
         if type.type == "directory":
-            zipdata = BytesIO(decrypt(password, file.data))
-            my_zipfile = zipfile.ZipFile(zipdata, mode='r', compression=zipfile.ZIP_DEFLATED)
-            my_zipfile.extractall(decrypted_folder)
+            b_zip = decrypt(key, file.data)
+            zipdata = BytesIO(b_zip)
+            with zipfile.ZipFile(zipdata, mode='r', compression=zipfile.ZIP_DEFLATED) as my_zipfile:
+                my_zipfile.extractall(decrypted_folder)
         else:
-            f = open(decrypted_folder + decrypt(self.__password, file.title).decode("utf-8"), 'wb')
-            f.write(decrypt(password, file.data))
+            key_main_password = generate_key_derivation(b"", self.__password)
+            f = open(decrypted_folder + decrypt(key_main_password, file.title).decode("utf-8"), 'wb')
+            f.write(decrypt(key, file.data))
             f.close()
 
         return 0
@@ -64,8 +70,9 @@ class shell_functions:
 
         files = self.list_files_with_type(typeFile) if typeFile is not None else self.list_all_files() # if typeFile is setted get the files with the given type else all the files
         files = files
+        key = generate_key_derivation(b"", self.__password)
         for file in files:
-            file_title = decrypt(self.__password, file.title).decode("utf-8")
+            file_title = decrypt(key, file.title).decode("utf-8")
             if search is not None:
                 if search in file_title:
                     threading.Thread(target=print_files(file_title)).start()
@@ -83,7 +90,7 @@ class shell_functions:
                 path = os.path.join(os.path.expanduser('~')) + path[1:]
             elif os.name == "nt":
                 path = os.path.join(os.environ['USERPROFILE'] + path[2:])
-
+        key = generate_key_derivation(b"", password)
         if os.path.exists(path):
             if os.path.isdir(path):
                 zipdata = BytesIO()
@@ -102,14 +109,14 @@ class shell_functions:
                 filename = path.split("/")[-1] + ".directory"
                 file_extension = "directory"
                 
-                file_content_cryp = encrypt(password, zipdata.getbuffer().tobytes())
+                file_content_cryp = encrypt(key, zipdata.getbuffer().tobytes())
             else:
                 f = open(path, 'rb')
                 file_contenent = f.read()
                 f.close()
 
                 assert file_contenent is not None
-                file_content_cryp = encrypt(password, file_contenent)
+                file_content_cryp = encrypt(key, file_contenent)
 
                 filename, file_extension = os.path.splitext(path)
 
@@ -118,7 +125,8 @@ class shell_functions:
         else:
             return -1
 
-        adding_file = main.Files(data=file_content_cryp, title=encrypt(self.__password, filename),
+        key_main_password = generate_key_derivation(b"", self.__password)
+        adding_file = main.Files(data=file_content_cryp, title=encrypt(key_main_password, bytes(filename, encoding='utf-8')),
                                  password=hashlib.sha224(bytes(password, encoding='utf-8')).hexdigest())
         self.__session.add(adding_file)
         self.__session.commit()

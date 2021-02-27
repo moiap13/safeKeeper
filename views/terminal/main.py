@@ -5,8 +5,6 @@ from sqlalchemy import Column, String, BLOB, Integer, create_engine, ForeignKey,
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-from simplecrypt import encrypt, \
-    decrypt  # SROUCE : https://blog.ruanbekker.com/blog/2018/04/29/encryption-and-decryption-with-simple-crypt-using-python/
 import hashlib
 import shell
 import animations
@@ -15,6 +13,10 @@ import itertools
 import threading
 import time
 import sys
+
+sys.path.append("./../../")
+
+from my_crypt.crypt import *
 
 # Tutorial :    https://stackoverflow.com/questions/41731096/sqlalchemy-query-one-to-many-relationship-with-sqlite
 # https://www.kite.com/python/answers/how-to-execute-raw-sql-queries-in-sqlalchemy-in-python
@@ -177,13 +179,14 @@ if __name__ == '__main__':
         __user_info = askUserInfos()
 
         threading.Thread(target=animations.animate).start() # loading animation start
-
-        _settings = Settings(firstname=encrypt(_password, __user_info[0]), lastname=encrypt(_password, __user_info[1]),
+        key = generate_key_derivation(b"", _password)
+        _settings = Settings(firstname=encrypt(key, __user_info[0]), lastname=encrypt(key, __user_info[1]),
                              password=__user_info[2])
         _session.add(_settings)
         _session.commit()
 
-    __firstname = decrypt(_password, _settings.firstname).decode("utf-8")
+    key = generate_key_derivation(b"", _password)
+    __firstname = decrypt(key, bytearray(_settings.firstname, encoding="utf-8")).decode("utf-8")
     animations.done = True
     sys.stdout.write("\rWelcome, " + __firstname + "\n")
 

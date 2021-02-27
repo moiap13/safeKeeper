@@ -2,7 +2,7 @@ import re
 import shlex
 import os, sys
 #sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append("./../../common/")
+sys.path.append("./../../")
 class shell:
     __session = None
     __password = None
